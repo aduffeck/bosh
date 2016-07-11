@@ -41,7 +41,7 @@ module Bosh::Director
           end
         end
       end
-    end
+    end 
 
     def broadcast_with_retry(instances, timeout, method, *args)
       lock = Mutex.new

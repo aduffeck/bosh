@@ -110,10 +110,11 @@ module Bosh::Director
       context 'when dns_publisher is enabled' do
         let(:blobstore) { Bosh::Blobstore::NullBlobstoreClient.new }
         let(:dns_publisher) { BlobstoreDnsPublisher.new(blobstore, 'fake-domain-name') }
+        let(:empty_dns_records) { DnsRecords.new }
 
         it 'calls export_dns_records and publish on the dns_publisher' do
-          expect(dns_publisher).to receive(:export_dns_records).and_return([])
-          expect(dns_publisher).to receive(:publish).with([])
+          expect(dns_publisher).to receive(:export_dns_records).and_return(empty_dns_records)
+          expect(dns_publisher).to receive(:publish).with(empty_dns_records)
           expect(dns_publisher).to receive(:broadcast)
           dns_manager.flush_dns_cache
         end

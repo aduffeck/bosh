@@ -4,13 +4,13 @@ module Bosh::Director
       dns_config = Config.dns || {}
 
       logger = Config.logger
-      dns_domain_name = Canonicalizer.canonicalize(dns_config.fetch('domain_name', 'bosh'), :allow_dots => true)
+      canonized_dns_domain_name = Config.canonized_dns_domain_name
       local_dns_repo = LocalDnsRepo.new(logger)
 
       dns_publisher = BlobstoreDnsPublisher.new(App.instance.blobstores.blobstore, dns_domain_name) if Config.local_dns
-      dns_provider = PowerDns.new(dns_domain_name, logger) if !!Config.dns_db
+      dns_provider = PowerDns.new(canonized_dns_domain_name, logger) if !!Config.dns_db
 
-      DnsManager.new(dns_domain_name, dns_config, dns_provider, dns_publisher, local_dns_repo, logger)
+      DnsManager.new(canonized_dns_domain_name, dns_config, dns_provider, dns_publisher, local_dns_repo, logger)
     end
   end
 

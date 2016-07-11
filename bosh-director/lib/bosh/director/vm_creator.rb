@@ -33,8 +33,8 @@ module Bosh::Director
                 create_for_instance_plan(instance_plan, disks)
 
                 instance_plan.network_plans
-                  .select(&:obsolete?)
-                  .each do |network_plan|
+                    .select(&:obsolete?)
+                    .each do |network_plan|
                   reservation = network_plan.reservation
                   ip_provider.release(reservation)
                 end
@@ -66,12 +66,14 @@ module Bosh::Director
         agent_client.wait_until_ready
 
         if Config.flush_arp
-          ip_addresses = instance_plan.network_settings_hash.map do |index,network|
+          ip_addresses = instance_plan.network_settings_hash.map do |index, network|
             network['ip']
           end.compact
 
           @agent_broadcaster.delete_arp_entries(instance_model.vm_cid, ip_addresses)
         end
+
+        create_local_dns_record(instance_model)
 
         instance.update_trusted_certs
         instance.update_cloud_properties!
@@ -150,7 +152,6 @@ module Bosh::Director
       end
 
       options[:vm_cid] = vm_cid
-
       instance_model.update(options)
     rescue => e
       @logger.error("error creating vm: #{e.message}")
@@ -166,6 +167,24 @@ module Bosh::Director
 
     def self.generate_agent_id
       SecureRandom.uuid
+    end
+
+    private
+
+    def create_local_dns_record(instance_model)
+      spec = instance_model.spec
+      @logger.debug('Creating dns records')
+      unless spec.nil? || spec['networks'].nil?
+        @logger.debug("Found #{spec['networks'].length} networks")
+        spec['networks'].each do |network_name, network|
+          unless network['ip'].nil? or spec['job'].nil?
+            ip = network['ip']
+            name = instance_model.uuid + '.' + spec['job']['name'] + '.' + network_name + '.' + spec['deployment'] + '.' + Config.canonized_dns_domain_name
+            @logger.debug("Adding dns record with name #{name} and ip #{ip}")
+            Models::LocalDnsRecord.create(:name => name, :ip => ip, :instance_id => instance_model.id )
+          end
+        end
+      end
     end
   end
 end

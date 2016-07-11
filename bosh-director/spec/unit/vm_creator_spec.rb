@@ -116,11 +116,12 @@ describe Bosh::Director::VmCreator do
     expect(agent_client).to receive(:wait_until_ready)
     expect(instance).to receive(:update_trusted_certs)
     expect(instance).to receive(:update_cloud_properties!)
+    expect(instance_model).to receive(:spec_json).and_return('{"networks":[["name",{"ip":1234}]],"job":{"name":"job_name"},"deployment":"bosh"}').twice
 
     expect {
       subject.create_for_instance_plan(instance_plan, ['fake-disk-cid'])
-    }.to change {
-        Bosh::Director::Models::Instance.where(vm_cid: 'new-vm-cid').count}.from(0).to(1)
+    }.to change {[Bosh::Director::Models::Instance.where(vm_cid: 'new-vm-cid').count,
+                  Bosh::Director::Models::LocalDnsRecord.count]}.from([0,0]).to([1,1])
   end
 
   it 'should record events' do
@@ -176,7 +177,7 @@ describe Bosh::Director::VmCreator do
     expect(agent_broadcaster).to have_received(:delete_arp_entries).with(instance_model.vm_cid, ["192.168.1.3"])
   end
 
-  it "does not flush the arp cache when arp_flush set to false" do
+  it 'does not flush the arp cache when arp_flush set to false' do
     Bosh::Director::Config.flush_arp = false
 
     allow(cloud).to receive(:create_vm).with(
