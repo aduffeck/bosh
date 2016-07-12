@@ -24,14 +24,13 @@ module Bosh::Director
       ThreadPool.new(max_threads: Config.max_threads, logger: @logger).wrap do |pool|
         instance_plans.each do |instance_plan|
           instance = instance_plan.instance
-
           pool.process do
             with_thread_name("create_missing_vm(#{instance.model}/#{total})") do
               event_log_stage.advance_and_track(instance.model.to_s) do
                 @logger.info('Creating missing VM')
                 disks = [instance.model.persistent_disk_cid].compact
                 create_for_instance_plan(instance_plan, disks)
-
+                create_local_dns_record(instance.model)
                 instance_plan.network_plans
                     .select(&:obsolete?)
                     .each do |network_plan|
@@ -72,8 +71,6 @@ module Bosh::Director
 
           @agent_broadcaster.delete_arp_entries(instance_model.vm_cid, ip_addresses)
         end
-
-        create_local_dns_record(instance_model)
 
         instance.update_trusted_certs
         instance.update_cloud_properties!
@@ -173,15 +170,15 @@ module Bosh::Director
 
     def create_local_dns_record(instance_model)
       spec = instance_model.spec
-      @logger.debug('Creating dns records')
+      @logger.debug('Creating local dns records')
       unless spec.nil? || spec['networks'].nil?
         @logger.debug("Found #{spec['networks'].length} networks")
         spec['networks'].each do |network_name, network|
           unless network['ip'].nil? or spec['job'].nil?
             ip = network['ip']
             name = instance_model.uuid + '.' + spec['job']['name'] + '.' + network_name + '.' + spec['deployment'] + '.' + Config.canonized_dns_domain_name
-            @logger.debug("Adding dns record with name #{name} and ip #{ip}")
-            Models::LocalDnsRecord.create(:name => name, :ip => ip, :instance_id => instance_model.id )
+            @logger.debug("Adding local dns record with name #{name} and ip #{ip}")
+            Bosh::Director::Models::LocalDnsRecord.create(:name => name, :ip => ip, :instance_id => instance_model.id )
           end
         end
       end

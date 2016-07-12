@@ -24,7 +24,9 @@ module Bosh::Director
 
           it 'adds new entry to LocalDnsBlob table' do
             blobstore_id = dns.publish(dns_records)
-            expect(Bosh::Director::Models::LocalDnsBlob.find(:blobstore_id => blobstore_id)).to_not be_nil
+            local_dns_blob = Bosh::Director::Models::LocalDnsBlob.find(:blobstore_id => blobstore_id)
+            expect(local_dns_blob.sha1).to eq(Digest::SHA1.hexdigest(dns_records.to_json))
+            expect(local_dns_blob.version).to eq(2)
           end
         end
 
@@ -43,15 +45,21 @@ module Bosh::Director
       describe '#broadcast' do
         context 'when LocalDnsBlob has records' do
             before {
-              Models::LocalDnsBlob.create(blobstore_id: 'fake-blob-id0', sha1: 'fake-sha0', :created_at => Time.new)
-              Models::LocalDnsBlob.create(blobstore_id: 'fake-blob-id1', sha1: 'fake-sha1', :created_at => Time.new)
+              Models::LocalDnsBlob.create(blobstore_id: 'fake-blob-id0',
+                                          sha1: 'fake-sha0',
+                                          version: 1,
+                                          :created_at => Time.new)
+              Models::LocalDnsBlob.create(blobstore_id: 'fake-blob-id1',
+                                          sha1: 'fake-sha1',
+                                          version: 2,
+                                          :created_at => Time.new)
             }
 
             let(:broadcaster) { double(AgentBroadcaster) }
 
             it 'retrieves the last blob' do
               expect(AgentBroadcaster).to receive(:new).and_return(broadcaster)
-              expect(broadcaster).to receive(:sync_dns).with('fake-blob-id1', 'fake-sha1')
+              expect(broadcaster).to receive(:sync_dns).with('fake-blob-id1', 'fake-sha1', 2)
               dns.broadcast
             end
           end

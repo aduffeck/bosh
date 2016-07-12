@@ -7,13 +7,16 @@ module Bosh::Director
 
     def broadcast
       blob = Models::LocalDnsBlob.order(Sequel.desc(:id)).limit(1).first
-      AgentBroadcaster.new.sync_dns(blob.blobstore_id, blob.sha1) unless blob.nil?
+      AgentBroadcaster.new.sync_dns(blob.blobstore_id, blob.sha1, blob.version) unless blob.nil?
     end
 
     def publish(dns_records)
       json_records = dns_records.to_json
       blobstore_id = @blobstore.create(json_records)
-      Models::LocalDnsBlob.create(:blobstore_id => blobstore_id, :sha1 => Digest::SHA1.hexdigest(json_records), :created_at => Time.new)
+      Models::LocalDnsBlob.create(:blobstore_id => blobstore_id,
+                                  :sha1 => Digest::SHA1.hexdigest(json_records),
+                                  :version => dns_records.version,
+                                  :created_at => Time.new)
       blobstore_id
     end
 
