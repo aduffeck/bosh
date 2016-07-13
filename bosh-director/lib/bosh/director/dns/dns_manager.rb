@@ -143,15 +143,19 @@ module Bosh::Director
 
     def publish_dns_records
       if publisher_enabled?
-        dns_records = @dns_publisher.export_dns_records
-        @dns_publisher.publish(dns_records)
-        @dns_publisher.broadcast
+        Bosh::Director::Config.db.transaction(:rollback => :always) do
+          dns_records = @dns_publisher.export_dns_records
+          @dns_publisher.publish(dns_records)
+          @dns_publisher.broadcast
+        end
       end
     end
 
     def cleanup_dns_records
       if publisher_enabled?
-        @dns_publisher.cleanup_blobs
+        Bosh::Director::Config.db.transaction(:rollback => :always) do
+          @dns_publisher.cleanup_blobs
+        end
       end
     end
 

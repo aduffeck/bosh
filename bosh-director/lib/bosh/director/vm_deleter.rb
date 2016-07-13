@@ -59,7 +59,9 @@ module Bosh::Director
             ip = network['ip']
             name = instance_model.uuid + '.' + spec['job']['name'] + '.' + network_name + '.' + spec['deployment'] + '.' + Config.canonized_dns_domain_name
             @logger.debug("Removing local dns record with name #{name} and ip #{ip}")
-            Models::LocalDnsRecord.where(:name => name, :ip => ip, :instance_id => instance_model.id ).delete
+            Bosh::Director::Config.db.transaction do
+              Models::LocalDnsRecord.where(:name => name, :ip => ip, :instance_id => instance_model.id ).delete
+            end
           end
         end
       end

@@ -11,6 +11,7 @@ module Bosh::Director
     end
 
     def publish(dns_records)
+      blobstore_id = nil
       json_records = dns_records.to_json
       blobstore_id = @blobstore.create(json_records)
       Models::LocalDnsBlob.create(:blobstore_id => blobstore_id,
@@ -21,7 +22,7 @@ module Bosh::Director
     end
 
     def export_dns_records
-      hosts = []
+      hosts, version = [], nil
       version = Models::LocalDnsRecord.max(:id) || 0
       Models::LocalDnsRecord.all{|r| r.id <= version}.map do |dns_record|
           hosts << [dns_record.ip, dns_record.name]
