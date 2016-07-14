@@ -69,6 +69,18 @@ describe 'local DNS', type: :integration do
     end
   end
 
+  context 'recreates VMs and updates all agents /etc/hosts' do
+    it 'updates /etc/hosts with the new info for an instance hostname' do
+      manifest_deployment = initial_deployment(5)
+
+      deploy_simple_manifest(manifest_hash: manifest_deployment, recreate: true)
+      5.times do |i|
+        check_agent_log(i)
+      end
+      check_agent_etc_hosts(5, 5)
+    end
+  end
+
   def initial_deployment(number_of_instances, max_in_flight=1)
     manifest_deployment = Bosh::Spec::Deployments.test_release_manifest
     manifest_deployment.merge!(

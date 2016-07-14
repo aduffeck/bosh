@@ -30,7 +30,6 @@ module Bosh::Director
                 @logger.info('Creating missing VM')
                 disks = [instance.model.persistent_disk_cid].compact
                 create_for_instance_plan(instance_plan, disks)
-                create_local_dns_record(instance.model)
                 instance_plan.network_plans
                     .select(&:obsolete?)
                     .each do |network_plan|
@@ -89,6 +88,7 @@ module Bosh::Director
       apply_initial_vm_state(instance_plan)
 
       instance_plan.mark_desired_network_plans_as_existing
+      create_local_dns_record(instance.model)
     end
 
     private

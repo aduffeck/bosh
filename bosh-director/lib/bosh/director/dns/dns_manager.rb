@@ -138,7 +138,6 @@ module Bosh::Director
           @logger.warn("Failed to flush DNS cache: #{stderr.chomp}")
         end
       end
-      publish_dns_records
     end
 
     def publish_dns_records
